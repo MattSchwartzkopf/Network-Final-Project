@@ -52,13 +52,9 @@ if __name__ == '__main__':
        loop = asyncio.get_event_loop()
        message = 'Temp'
        coro = loop.create_connection(lambda: AsyncClient(message, loop), "localhost", 1060)
-       while True:
-           loop.run_until_complete(coro)
-       
-       try:
-           loop.run_forever()
-       except:
-           loop.close() 
+       loop.run_until_complete(coro)
+       loop.run_forever()
+       loop.close() 
 
 
 

@@ -1,30 +1,38 @@
 import asyncio
+import json
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self, message, loop):
         self.message = message
         self.loop = loop
-        self.name = ""
-        self.USERNAMES = []
+        self.username = ''
         self.username_count = 1
-        
+        self.data = ''
+
     def connection_made(self, transport):
-        transport.write(self.message.encode())
-        print(AsyncClient.get_username(self))
-        test = asyncio.async(handle_user_input(self.loop))
-      
-        print('Data sent: {!r}'.format(self.message))
+        AsyncClient.get_username(self)
+        string = {'data': [{ 'name' : self.username, 'message' : self.message }]}
+        username_json = {'USERNAME' : self.username}
+        if username_json['USERNAME'] > "":
+            print(username_json['USERNAME'])
+            transport.write(username_json['USERNAME'].encode())
+            transport.write('USERNAME'.encode())
+        
+        
+        print('Data sent: {!r}'.format(username_json))
 
     def data_received(self, data):
+        receive = data.decode()
+        if receive == 'USERNAME_ACCEPTED':
+            print(receive)
+            return(asyncio.async(handle_user_input(self.loop)))
         print('Data received: {!r}'.format(data.decode()))
 
     def get_username(self):
-        name = input("Enter username: ")
-        self.USERNAMES.append({'Usernames' : {name : self.username_count}})
+        self.username = input("Enter username: ")
         self.username_count += 1
-        name += " has joined the chat!"
-        print("List: ", self.USERNAMES[0])
-        return name
+        self.username+= " has joined the chat!"
+        return self.username
 
 @asyncio.coroutine
 def handle_user_input(loop):
@@ -33,7 +41,8 @@ def handle_user_input(loop):
         otherwise just echos user input"""
     while True:
         message = yield from loop.run_in_executor(None, input, "> ")
-        return message
+        return(message)
+        break
         if message == "quit":
             loop.stop()
             return

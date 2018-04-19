@@ -1,50 +1,41 @@
 import asyncio
 import json
 import argparse
-from socket import socketpair
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self, loop):
-        self.message = ""
+        self.message = ''
         self.loop = loop
         self.username = ''
-        self.username_count = 1
         self.data = ''
-        self.name = ""
+        self.transport = None
 
     def connection_made(self, transport):
+        self.transport = transport
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
-        AsyncClient.get_username(self)
-        username_json = {"USERNAME" : str(self.name)}
-        
-        if username_json['USERNAME'] > "":
-            transport.write(username_json['USERNAME'].encode())
-            transport.write('USERNAME'.encode())
-        
-        
-        print('Data sent: {!r}'.format(username_json))
+        self.get_username()
 
+    def get_username(self):
+        self.username = input("Enter username: ")
+        self.send_data()
+
+    def send_data(self):
+        username_json = json.dumps({"USERNAME" : self.username})    
+        self.transport.write(username_json.encode())
+        print('Data sent: {!r}'.format(username_json.encode()))
+        
     def data_received(self, data):
+        print("here")
         receive = data.decode()
-        print("Recveived: ", data)
         if receive == 'USERNAME_ACCEPTED':
             print("Received", receive)
             return(asyncio.async(handle_user_input(self.loop)))
         print('Data received: {!r}'.format(data.decode()))
-
-    def get_username(self):
-        self.username = input("Enter username: ")
-        self.name = self.username
-        self.username_count += 1
-        self.username+= " has joined the chat!"
-        return self.username
+    
 
 @asyncio.coroutine
 def handle_user_input(loop):
-    """reads from stdin in separate threadif user
-        inputs 'quit' stops the event loop
-        otherwise just echos user input"""
     while True:
         message = yield from loop.run_in_executor(None, input, "> ")
         if message == "quit":
@@ -64,22 +55,29 @@ if __name__=='__main__':
     args = parser.parse_args()
     
     loop = asyncio.get_event_loop()
-
-    # Gets the user input for first use
-    #group1 = asyncio.gather(*[handle_user_input(loop)])
-    #all_groups = asyncio.gather(group1)
-    #results = loop.run_until_complete(all_groups)
-   # message = str(results[0])
-    
-
-    coro =  loop.create_connection(lambda: AsyncClient(loop),
+    client = AsyncClient(loop)
+    coro =  loop.create_connection(lambda: client,
                                   args.host, args.p)
+    
     loop.run_until_complete(coro)
+    #asyncio.async(handle_user_input(loop))
     try:
-        asyncio.async(handle_user_input(loop))
         loop.run_forever()
     except:
-         loop.close()
+        loop.stop()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

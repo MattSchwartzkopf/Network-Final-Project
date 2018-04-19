@@ -1,6 +1,8 @@
 import asyncio
 import json
 import argparse
+import socket
+import struct
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self, loop):
@@ -14,26 +16,30 @@ class AsyncClient(asyncio.Protocol):
         self.transport = transport
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
-        self.get_username()
 
-    def get_username(self):
-        self.username = input("Enter username: ")
-        self.send_data()
+        def get_username(self):
+            self.username = input("Enter username: ")
+            
+        def send_data(self):
+            username_json = json.dumps({"USERNAME" : self.username}).encode()
 
-    def send_data(self):
-        username_json = json.dumps({"USERNAME" : self.username})    
-        self.transport.write(username_json.encode())
-        print('Data sent: {!r}'.format(username_json.encode()))
+            length = struct.pack("!I", len(username_json))
+            transport.write(length)
+            transport.write(username_json)
+            print('Data sent: {!r}'.format(username_json))
+            
+        get_username(self)
+        send_data(self)
+        print("here3")
         
     def data_received(self, data):
-        print("here")
-        receive = data.decode()
-        if receive == 'USERNAME_ACCEPTED':
-            print("Received", receive)
-            return(asyncio.async(handle_user_input(self.loop)))
+        
+        #receive = data.decode()
         print('Data received: {!r}'.format(data.decode()))
-    
-
+        asyncio.async(handle_user_input(self.loop))
+        print("here2")
+        
+      
 @asyncio.coroutine
 def handle_user_input(loop):
     while True:
@@ -42,8 +48,10 @@ def handle_user_input(loop):
             loop.stop()
             return
         else:
-            return(message)
-    print(message)
+            print("here")
+            break
+            #return(message)
+    #print(message)
 
 
 if __name__=='__main__':
@@ -62,6 +70,7 @@ if __name__=='__main__':
     loop.run_until_complete(coro)
     #asyncio.async(handle_user_input(loop))
     try:
+        print("here4")
         loop.run_forever()
     except:
         loop.stop()

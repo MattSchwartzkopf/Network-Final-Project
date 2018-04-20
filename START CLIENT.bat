@@ -1,6 +1,5 @@
-start cmd /k py client.py
 cd ..
 cd GitHub
 cd Network-Final-Project
-py server.py
+py client.py csi235.site
 pause

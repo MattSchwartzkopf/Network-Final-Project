@@ -40,10 +40,10 @@ class AsyncClient(asyncio.Protocol):
                 message = sys.stdin.readline()
                 asyncio.async(queue.put(message))
                 # Sets time
-                times = calendar.timegm(time.gmtime())
+                timestamp = calendar.timegm(time.gmtime())
                 # Build JSON message
-                lists = [self.username, 'ALL', times, message]
-                message2 = json.dumps(lists).encode()
+                lists = [self.username, 'ALL', timestamp, message]
+                message2 = json.dumps({'MESSAGES' : lists}).encode()
                 print(message2)
                 # Send message length first
                 length = struct.pack("!I", len(message2))

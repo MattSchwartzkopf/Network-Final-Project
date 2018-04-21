@@ -3,76 +3,85 @@ import json
 import argparse
 import socket
 import struct
+import time
+import calendar
 import sys
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self, loop):
-        self.message = ''
-        self.loop = loop
         self.username = ''
-        self.data = []
-        self.transport = None
         self.count = 0
-        
+    
     def connection_made(self, transport):
-        self.transport = transport
+        # Prints connection to server
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
-        self.get_username()
-        print('here1')
         
-    def get_username(self):
-        self.username = input("Enter username: ")
-        self.send_data()
-        print('here2')
+        def get_username(self):
+            # Gets username from user
+            self.username = input("Enter username: ")
         
-    def send_data(self):
-        username_json = json.dumps({"USERNAME" : self.username}).encode()
-        length = struct.pack("!I", len(username_json))
-        self.transport.write(length)
-        self.transport.write(username_json)
-        print('Data sent: {!r}'.format(username_json))
-        print('here3')
+        def send_data(self):
+            
+            if self.count == 0:
+                # Build JSON message
+                username_json = json.dumps({"USERNAME" : self.username}).encode()
+                # Pack and send message lenth first
+                length = struct.pack("!I", len(username_json))
+                transport.write(length)
+                # Send message
+                transport.write(username_json)
+                print('Data sent: {!r}'.format(username_json))
+                self.count += 1
+            
+            if self.count > 0:
+                # Gets message from handle_user_input
+                queue = asyncio.Queue()
+                message = sys.stdin.readline()
+                asyncio.async(queue.put(message))
+                # Sets time
+                times = calendar.timegm(time.gmtime())
+                # Build JSON message
+                lists = [self.username, 'ALL', times, message]
+                message2 = json.dumps(lists).encode()
+                print(message2)
+                # Send message length first
+                length = struct.pack("!I", len(message2))
+                transport.write(length)
+                # Send full message
+                transport.write(message2)
         
+        # Calls functions accordingly
+        get_username(self)
+        send_data(self)
+
     def data_received(self, data):
-        self.data = data
-        
-        print('Data received: {!r}'.format(data))
-        #message = asyncio.async(handle_user_input(self.loop))
-        print('here5')        
-      
+        # Prints any and all received data
+        print('Data received: {!r}'.format(data.decode()))
+
 @asyncio.coroutine
 def handle_user_input(loop):
-    reader, writer = yield from asyncio.open_connection('csi235.site', 9000, loop=loop)
-    
     while True:
         message = yield from loop.run_in_executor(None, input, "> ")
-        print('here7')
-        print("idk")
-        writer.write(message.encode())
         if message == "quit":
             loop.stop()
             return
-        else:
-            #AsyncClient.send_message(message)
-            break
-
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Example client')
     parser.add_argument('host', help='IP or hostname')
     parser.add_argument('-p', metavar='port', type=int, default=9000,
                         help='TCP port (default 9000)')
-    
+        
     args = parser.parse_args()
-    
+
     loop = asyncio.get_event_loop()
     client = AsyncClient(loop)
     coro =  loop.create_connection(lambda: client,
-                                  args.host, args.p)
-    
+                                   args.host, args.p)
+
     loop.run_until_complete(coro)
-    asyncio.async(handle_user_input(loop))
+
     try:
         asyncio.async(handle_user_input(loop))
         loop.run_forever()

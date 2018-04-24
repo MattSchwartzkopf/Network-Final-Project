@@ -61,9 +61,9 @@ def handle_user_input(self):
             return
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description='Example client')
+    parser = argparse.ArgumentParser(description='Async Client')
     parser.add_argument('host', help='IP or hostname')
-    parser.add_argument('-p', metavar='port', type=int, default=9000,
+    parser.add_argument('-p', metavar='port', type=int, default=1060,
                         help='TCP port (default 9000)')
         
     args = parser.parse_args()
@@ -73,7 +73,6 @@ if __name__=='__main__':
     coro =  loop.create_connection(lambda: client,
                                    args.host, args.p)
     loop.run_until_complete(coro)
-    #asyncio.async(handle_user_input(loop, self.transport))
 
     try:
         loop.run_forever()        

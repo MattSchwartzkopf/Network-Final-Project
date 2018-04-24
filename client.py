@@ -1,7 +1,6 @@
 import asyncio
 import json
 import argparse
-import socket
 import struct
 import time
 import calendar
@@ -11,58 +10,52 @@ class AsyncClient(asyncio.Protocol):
     def __init__(self, loop):
         self.username = ''
         self.count = 0
-    
+        self.transport = None
+        self.loop = loop
+        
     def connection_made(self, transport):
+        self.transport = transport
         # Prints connection to server
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
+        self.get_username()
+         
+    def get_username(self):
+        # Gets username from user
+        self.username = input("Enter username: ")
+        self.send_username_data()
+     
+    def send_username_data(self):
+        # Build JSON message
+        username_json = json.dumps({"USERNAME" : self.username}).encode()
+        # Pack and send message lenth first
+        length = struct.pack("!I", len(username_json))
+        self.transport.write(length)
+        # Send message
+        self.transport.write(username_json)
+        self.count += 1
+        # Start looping sending messages
+        asyncio.async(handle_user_input(self))
         
-        def get_username(self):
-            # Gets username from user
-            self.username = input("Enter username: ")
-        
-        def send_data(self):
-            
-            if self.count == 0:
-                # Build JSON message
-                username_json = json.dumps({"USERNAME" : self.username}).encode()
-                # Pack and send message lenth first
-                length = struct.pack("!I", len(username_json))
-                transport.write(length)
-                # Send message
-                transport.write(username_json)
-                print('Data sent: {!r}'.format(username_json))
-                self.count += 1
-            
-            if self.count > 0:
-                # Gets message from handle_user_input
-                queue = asyncio.Queue()
-                message = sys.stdin.readline()
-                asyncio.async(queue.put(message))
-                # Sets time
-                timestamp = calendar.timegm(time.gmtime())
-                # Build JSON message
-                lists = [self.username, 'ALL', timestamp, message]
-                message2 = json.dumps({'MESSAGES' : lists}).encode()
-                print(message2)
-                # Send message length first
-                length = struct.pack("!I", len(message2))
-                transport.write(length)
-                # Send full message
-                transport.write(message2)
-        
-        # Calls functions accordingly
-        get_username(self)
-        send_data(self)
-
     def data_received(self, data):
         # Prints any and all received data
-        print('Data received: {!r}'.format(data.decode()))
+        print(data)
 
 @asyncio.coroutine
-def handle_user_input(loop):
+def handle_user_input(self):
     while True:
         message = yield from loop.run_in_executor(None, input, "> ")
+        # Sets time
+        timestamp = calendar.timegm(time.gmtime())
+        # Build JSON message
+        lists = [self.username, 'ALL', timestamp, message]
+        message_to_send = json.dumps({'MESSAGES' : [lists]}).encode()
+        # Send message length first
+        length = struct.pack("!I", len(message_to_send))
+        self.transport.write(length)
+        # Send full message
+        self.transport.write(message_to_send)
+        
         if message == "quit":
             loop.stop()
             return
@@ -79,12 +72,11 @@ if __name__=='__main__':
     client = AsyncClient(loop)
     coro =  loop.create_connection(lambda: client,
                                    args.host, args.p)
-
     loop.run_until_complete(coro)
+    #asyncio.async(handle_user_input(loop, self.transport))
 
     try:
-        asyncio.async(handle_user_input(loop))
-        loop.run_forever()
+        loop.run_forever()        
     except:
         loop.stop()
 

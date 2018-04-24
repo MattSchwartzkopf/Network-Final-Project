@@ -12,6 +12,8 @@ class AsyncClient(asyncio.Protocol):
         self.count = 0
         self.transport = None
         self.loop = loop
+        self.data = ''
+        self.length = 0
         
     def connection_made(self, transport):
         self.transport = transport
@@ -38,9 +40,25 @@ class AsyncClient(asyncio.Protocol):
         asyncio.async(handle_user_input(self))
         
     def data_received(self, data):
-        # Prints any and all received data
-        print(data)
 
+        # Prints all new emssages
+        if self.count > 1:
+            print(data.decode("ISO-8859-1"))
+            
+        # Stores all messages from server
+        while data:
+            self.length += len(data)
+            for char in data.decode('ISO-8859-1'):
+                self.data += char
+            break
+
+        # Once all messages are received
+        # Print to console
+        if self.data.__contains__(']]}') and self.count == 1:
+            if len(self.data) == self.length:
+                print(self.data, "\n")
+                self.count += 1
+                
 @asyncio.coroutine
 def handle_user_input(self):
     while True:
@@ -63,7 +81,7 @@ def handle_user_input(self):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Async Client')
     parser.add_argument('host', help='IP or hostname')
-    parser.add_argument('-p', metavar='port', type=int, default=1060,
+    parser.add_argument('-p', metavar='port', type=int, default=9000,
                         help='TCP port (default 9000)')
         
     args = parser.parse_args()

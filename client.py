@@ -28,7 +28,8 @@ class AsyncClient(asyncio.Protocol):
         # Gets username from user
         self.username = input("Enter username: ")
         self.send_username_data()
-     
+    
+    # Sends user's username to server
     def send_username_data(self):
         # Build JSON message
         username_json = json.dumps({"USERNAME" : self.username}).encode()
@@ -41,19 +42,21 @@ class AsyncClient(asyncio.Protocol):
         # Start looping sending messages
         asyncio.async(handle_user_input(self))
 
+    # Prints all messages stored in server history
     def handle_chat(self, message):
-            test = json.loads(self.data[4:])
+        test = json.loads(self.data[4:])
 
-            # Loads all message history
-            for i in range(len(test['MESSAGES'])):
-                print("", test['MESSAGES'][i][0] + ": ", test['MESSAGES'][i][3])
-                self.count += 1
-            self.run += 1
+        # Loads all message history
+        for i in range(len(test['MESSAGES'])):
+            print("", test['MESSAGES'][i][0] + ": ", test['MESSAGES'][i][3])
+            self.count += 1
+        self.run += 1
             
-    def messages(self):
-        if self.new_data.__contains__('USERS_'):
+    # Prints all new messages
+    def messages(self, message):
+        if message.__contains__('USERS_'):
             print("ERROR")
-        test = json.loads(self.new_data[4:])
+        test = json.loads(message[4:])
         print(test['MESSAGES'][0][0] +": ", test['MESSAGES'][0][3])
 
     #### v NOT CURRENTLY USING v ####
@@ -64,32 +67,41 @@ class AsyncClient(asyncio.Protocol):
         if test.__contains__('LEFT'):
             print(test)
     #### ^ NOT CURRENTLY USING ^ ####
-            
-    def data_received(self, data):
-        new_data = ''
-        
+
+    def print_new_messages(self, data):
         # Prints all new emssages
         if self.run > 0:
             self.new_data += data.decode('ISO-8859-1')
             if self.new_data.__contains__(']]}') and self.new_data.__contains__('MESSAGES'):
-                self.messages()
+                self.messages(self.new_data)
                 self.new_data = ''
             if self.new_data.__contains__('USERS_'):
                 print(data)
                 self.new_data = ''
-                
+
+    def grab_server_messages(self, data):
         # Stores all messages from server
         while data:
             self.length += len(data)
             for char in data.decode('ISO-8859-1'):
                 self.data += char
             break
-
-        # Once all messages are received
-        # Print to console
+    def print_server_messages(self):
         if self.data.__contains__(']]}') and self.count == 1:
             if len(self.data) == self.length:
                 self.handle_chat(self.data)
+
+    def data_received(self, data):
+        
+        # Prints all new messages
+        self.print_new_messages(data)
+                
+        # Grabs all stored messages from server
+        self.grab_server_messages(data)
+    
+        # Once all messages are received,
+        # Print to console
+        self.print_server_messages()
                 
 @asyncio.coroutine
 def handle_user_input(self):
@@ -113,7 +125,7 @@ def handle_user_input(self):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Async Client')
     parser.add_argument('host', help='IP or hostname')
-    parser.add_argument('-p', metavar='port', type=int, default=1060,
+    parser.add_argument('-p', metavar='port', type=int, default=9000,
                         help='TCP port (default 9000)')
         
     args = parser.parse_args()

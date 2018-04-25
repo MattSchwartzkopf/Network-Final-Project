@@ -13,7 +13,9 @@ class AsyncClient(asyncio.Protocol):
         self.transport = None
         self.loop = loop
         self.data = ''
+        self.new_data = ''
         self.length = 0
+        self.run= 0
         
     def connection_made(self, transport):
         self.transport = transport
@@ -38,13 +40,44 @@ class AsyncClient(asyncio.Protocol):
         self.count += 1
         # Start looping sending messages
         asyncio.async(handle_user_input(self))
-        
-    def data_received(self, data):
 
-        # Prints all new emssages
-        if self.count > 1:
-            print(data.decode("ISO-8859-1"))
+    def handle_chat(self, message):
+            test = json.loads(self.data[4:])
+
+            # Loads all message history
+            for i in range(len(test['MESSAGES'])):
+                print("", test['MESSAGES'][i][0] + ": ", test['MESSAGES'][i][3])
+                self.count += 1
+            self.run += 1
             
+    def messages(self):
+        if self.new_data.__contains__('USERS_'):
+            print("ERROR")
+        test = json.loads(self.new_data[4:])
+        print(test['MESSAGES'][0][0] +": ", test['MESSAGES'][0][3])
+
+    #### v NOT CURRENTLY USING v ####
+    def format_users(self, data):
+        test = json.dumps(data.decode('ISO-8859-1')[4:])
+        if test.__contains__('JOINED'):
+            print(test)
+        if test.__contains__('LEFT'):
+            print(test)
+    #### ^ NOT CURRENTLY USING ^ ####
+            
+    def data_received(self, data):
+        new_data = ''
+        
+        # Prints all new emssages
+        if self.run > 0:
+            self.new_data += data.decode('ISO-8859-1')
+            if self.new_data.__contains__(']]}') and self.new_data.__contains__('MESSAGES'):
+                self.messages()
+                self.new_data = ''
+            if self.new_data.__contains__('USERS_'):
+                print(data)
+                self.new_data = ''
+                
         # Stores all messages from server
         while data:
             self.length += len(data)
@@ -56,8 +89,7 @@ class AsyncClient(asyncio.Protocol):
         # Print to console
         if self.data.__contains__(']]}') and self.count == 1:
             if len(self.data) == self.length:
-                print(self.data, "\n")
-                self.count += 1
+                self.handle_chat(self.data)
                 
 @asyncio.coroutine
 def handle_user_input(self):
@@ -81,7 +113,7 @@ def handle_user_input(self):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Async Client')
     parser.add_argument('host', help='IP or hostname')
-    parser.add_argument('-p', metavar='port', type=int, default=9000,
+    parser.add_argument('-p', metavar='port', type=int, default=1060,
                         help='TCP port (default 9000)')
         
     args = parser.parse_args()
@@ -96,16 +128,6 @@ if __name__=='__main__':
         loop.run_forever()        
     except:
         loop.stop()
-
-
-
-
-
-
-
-
-
-
 
 
 

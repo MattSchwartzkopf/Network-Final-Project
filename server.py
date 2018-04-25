@@ -3,25 +3,33 @@ import socket
 import time
 import random
 import argparse
+import json
+import sys
 
-def store_chat_history(history):
-    
-    with open('chat_history.txt', 'a') as file:
-    
-        for word in history:
-            print("TESTTTTTT: ", word[6:])
-            file.write(str(word[6:]))
-            file.write("\n")
-        file.close()
-    
-def load_chat_history():
-    print("OLD CHAT HISTORY \n")
-    
-    with open('chat_history.txt', 'r') as file:
-        print(file.read())
+class AsyncServer(asyncio.Protocol):
+    def __init__(self, loop):
+        self.USERS_JOINED = []
+        
+    def store_chat_history(history):
+        with open('chat_history.txt', 'a') as file:
+            for word in history:
+                print("TESTTTTTT: ", word[6:])
+                file.write(str(word[6:]))
+                file.write("\n")
+            file.close()
+        
+    def load_chat_history():
+        print("OLD CHAT HISTORY ")
+        with open('chat_history.txt', 'r') as file:
+            if file.read() == '':
+                print('None \n')
+            else:
+                print("\n") 
+                print(file.read())
 
-def user_joined(username):
-
+    def user_joined(username):
+        new_user = json.dumps({'USERS_JOINED' : username})
+        print('')
     
 @asyncio.coroutine
 def handle_conversation(reader, writer):
@@ -33,19 +41,37 @@ def handle_conversation(reader, writer):
         
     while True:
         if count == 0:
-            load_chat_history()
+            AsyncServer.load_chat_history()
             count += 1
         
         data = b''
-        while not data.endswith(b'?'):
+        while not data.endswith(b'~'):
             received = yield from reader.read(4096)
             temp_history.append(received)
-            print(received)
+            json_string = json.loads(received[4:])
+
+            # Loads username
+            if json_string.__contains__('USERNAME') :
+                #AsyncServer.user_joined(json_string['USERNAME'][0:])
+                username = json_string['USERNAME'][0]
+                new_user = {'USERS_JOINED' : username}
+                sender = json.dumps(new_user).encode()
+                
+                print(sender)
+                writer.write(sender)
+
+            # Loads USERS_JOINED
+            
+            # Loads USERS_LEFT
+
+            # Stores Messages
+            
+            
             
             if not received:
                 if data:
                     print('Client {} sent {!r} but then closed'.format(address, data))
-                    store_chat_history(temp_history)
+                    AsyncServer.store_chat_history(temp_history)
                     return
             data += received
         writer.write(data)

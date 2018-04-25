@@ -1,21 +1,25 @@
 import asyncio
 import json
+import struct
 
 class AsyncServer(asyncio.Protocol):
     def __init__(self):
-        self.USERS_JOINED = []
+        self.USER_LIST = []
         self.transport = None
         self.data = ''
         self.count = 0
+        self.connection_from = ''
         
     def connection_made(self, transport):
-        peername = transport.get_extra_info('peername')
-        print('Connection from {}'.format(peername))
-        self.transport = transport
+        if self.transport == None:
+            peername = transport.get_extra_info('peername')
+            self.connection_from = 'Connection from {}'.format(peername)
+            #print('Connection from {}'.format(peername))
+            self.transport = transport
 
     def data_received(self, data):
         message = data.decode()
-        self.data = message
+        self.data += message
         asyncio.async(handle_conversation(self, message))
         print('Data server received: {!r}'.format(message))
         
@@ -41,24 +45,40 @@ class AsyncServer(asyncio.Protocol):
                 print(file.read())
                 
 @asyncio.coroutine
-def handle_conversation(self, delimiter):
+def handle_conversation(self, message):
     temp_history = []
     reader, writer = yield from asyncio.open_connection('localhost', 1060, loop=loop)
     
     # Formats all messages to send
-    formatter = json.loads(delimiter[4:])
-
+    formatter = json.loads(message[4:])
+    username = formatter['USERNAME'][0:]
+    
     if self.count == 0:
         address = writer.get_extra_info('peername')
         print('Accepted connection from {}'.format(address))
+        print(self.connection_from)
         self.count += 1
-
+        runner = 0
+        
     if formatter.__contains__('USERNAME'):
-        send_back= json.dumps({'USERNAME_ACCEPTED' : formatter['USERNAME']}).encode()
+        print(self.USER_LIST)
+        for user in self.USER_LIST:
+            if user == username:
+                print("Found!")
+                runner += 1
+                break
+        if runner == 1:
+            print("found!")
+        else:
+            print("Nope!")
+            print(username)
+            self.USER_LIST.append(str(username))
+            
+        
+    if formatter.__contains__('MESSAGES'):
+        send_back = json.dumps({'MESSAGES' : message}).encode()
         print("Send back: ", send_back)
-        self.transport.write(send_back)
-    else:
-        print("fuck it")
+        
     while True:
         data = b''
         more_data = yield from reader.read(4096)
@@ -74,23 +94,21 @@ def handle_conversation(self, delimiter):
     writer.write(data)
 
 
-        
-loop = asyncio.get_event_loop()
-# Each client connection will create a new protocol instance
-coro = loop.create_server(AsyncServer, 'localhost', 1060)
-server = loop.run_until_complete(coro)
+if __name__=='__main__':
+    loop = asyncio.get_event_loop()
+    # Each client connection will create a new protocol instance
+    coro = loop.create_server(AsyncServer, 'localhost', 1060)
+    server = loop.run_until_complete(coro)
 
-# Serve requests until Ctrl+C is pressed
-print('Serving on {}'.format(server.sockets[0].getsockname()))
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
-
-# Close the server
-server.close()
-loop.run_until_complete(server.wait_closed())
-loop.close()
+    # Serve requests until Ctrl+C is pressed
+    print('Serving on {}'.format(server.sockets[0].getsockname()))
+    try:
+        loop.run_forever()
+    except:
+        # Close the server
+        server.close()
+        loop.run_until_complete(server.wait_closed())
+        loop.close()
 
 
 

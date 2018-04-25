@@ -1,8 +1,12 @@
 import asyncio
+import json
 
 class AsyncServer(asyncio.Protocol):
     def __init__(self):
         self.USERS_JOINED = []
+        self.transport = None
+        self.data = ''
+        self.count = 0
         
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
@@ -11,10 +15,10 @@ class AsyncServer(asyncio.Protocol):
 
     def data_received(self, data):
         message = data.decode()
-        print('Data received: {!r}'.format(message))
-
-        print('Send: {!r}'.format(message))
-        self.transport.write(data)
+        self.data = message
+        asyncio.async(handle_conversation(self, message))
+        print('Data server received: {!r}'.format(message))
+        
 
         #print('Close the client socket')
        # self.transport.close()
@@ -37,28 +41,37 @@ class AsyncServer(asyncio.Protocol):
                 print(file.read())
                 
 @asyncio.coroutine
-def handle_conversation():
+def handle_conversation(self, delimiter):
     temp_history = []
-    count = 0
-    reader, writer = yield from asyncio.open_connection('localhost', 1060,
-                                                        loop=loop)
-        
-    address = writer.get_extra_info('peername')
-    print('Accepted connection from {}'.format(address))
+    reader, writer = yield from asyncio.open_connection('localhost', 1060, loop=loop)
     
+    # Formats all messages to send
+    formatter = json.loads(delimiter[4:])
+
+    if self.count == 0:
+        address = writer.get_extra_info('peername')
+        print('Accepted connection from {}'.format(address))
+        self.count += 1
+
+    if formatter.__contains__('USERNAME'):
+        send_back= json.dumps({'USERNAME_ACCEPTED' : formatter['USERNAME']}).encode()
+        print("Send back: ", send_back)
+        self.transport.write(send_back)
+    else:
+        print("fuck it")
     while True:
         data = b''
-        while not data.endswith(b'?'):
-            more_data = yield from reader.read(4096)
-            if not more_data:
-                if data:
-                    print('Client {} sent {!r} but then closed'
-                          .format(address, data))
-                else:
-                    print('Client {} closed socket normally'.format(address))
-                return
-            data += more_data
-        writer.write(data)
+        more_data = yield from reader.read(4096)
+        print("MORE_DATA: ", more_data)
+        if not more_data:
+            if data:
+                print('Client {} sent {!r} but then closed'
+                      .format(address, data))
+            else:
+                print('Client {} closed socket normally'.format(address))
+            return
+        data += more_data
+    writer.write(data)
 
 
         
@@ -70,7 +83,6 @@ server = loop.run_until_complete(coro)
 # Serve requests until Ctrl+C is pressed
 print('Serving on {}'.format(server.sockets[0].getsockname()))
 try:
-    handle_conversation()
     loop.run_forever()
 except KeyboardInterrupt:
     pass

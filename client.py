@@ -44,6 +44,7 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all messages stored in server history
     def handle_chat(self, message):
+        print("MESSAGE: ", message)
         test = json.loads(self.data[4:])
 
         # Loads all message history
@@ -125,7 +126,7 @@ def handle_user_input(self):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Async Client')
     parser.add_argument('host', help='IP or hostname')
-    parser.add_argument('-p', metavar='port', type=int, default=9000,
+    parser.add_argument('-p', metavar='port', type=int, default=1060,
                         help='TCP port (default 9000)')
         
     args = parser.parse_args()

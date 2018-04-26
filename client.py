@@ -54,10 +54,19 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all new messages
     def messages(self, message):
+
+        new = ''
         
-        if message.__contains__('USERS_'):
-            print("ERROR")
-        test = json.loads(message[4:])
+        if message.__contains__('USERS_') or message.__contains__('JOINED') or message.__contains__('LEFT'):
+            counter = 0
+            for char in message:
+                if counter > 1:
+                    new += char
+                if char == '{' or char == '}':
+                    counter += 1
+            test = json.loads(new[4:])
+        else:
+            test = json.loads(message[4:])
         print(test['MESSAGES'][0][0] +": ", test['MESSAGES'][0][3])
 
     def print_new_messages(self, data):
@@ -67,8 +76,15 @@ class AsyncClient(asyncio.Protocol):
             if self.new_data.__contains__(']]}') and self.new_data.__contains__('MESSAGES'):
                 self.messages(self.new_data)
                 self.new_data = ''
-            if self.new_data.__contains__('USERS_'):
+            if self.new_data.__contains__('USERS_JOINED'):
+                joined = json.loads(self.new_data[4:])
                 self.new_data = ''
+                print("User joined: ", joined['USERS_JOINED'][0])
+            if self.new_data.__contains__('USERS_LEFT'):
+                left = json.loads(self.new_data[4:])
+                self.new_data = ''
+                print("User left: ", left['USERS_LEFT'][0])
+                
 
     def grab_server_messages(self, data):
         # Stores all messages from server

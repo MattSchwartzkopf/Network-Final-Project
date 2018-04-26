@@ -35,8 +35,7 @@ class AsyncServer(asyncio.Protocol):
     def store_chat_history(self, history):
         with open('chat_history.txt', 'a') as file:
             for word in history:
-                print("TESTTTTTT: ", word)
-                file.write(str(word[6:]) + " ")
+                file.write("\n" + str(word))
             file.close()
         
     def load_chat_history(self):
@@ -58,7 +57,7 @@ class AsyncServer(asyncio.Protocol):
                     MESSAGES.append(new)
                     new = []
                     r += 4
-            print(MESSAGES)
+            #print(MESSAGES)
         return(MESSAGES)
     
     def send_user_acception(self, message):
@@ -75,7 +74,8 @@ class AsyncServer(asyncio.Protocol):
         length = struct.pack("!I", len(sender))
         self.transport.write(length)
         self.transport.write(sender)
-        print("Sender: ", sender)
+        print("\nSender: ", sender)
+        self.user_joined(username)
         self.count += 1
         
     def send_new_message(self, message):
@@ -93,7 +93,13 @@ class AsyncServer(asyncio.Protocol):
         length = struct.pack("!I", len(sender))
         self.transport.write(length)
         self.transport.write(sender)
-        
+
+    def user_joined(self, message):
+        joined = json.dumps({'USERS_JOINED' : message}).encode()
+        length = struct.pack("!I", len(joined))
+        self.transport.write(length)
+        self.transport.write(joined)
+
 @asyncio.coroutine
 def handle_conversation(self, message):
     reader, writer = yield from asyncio.open_connection('localhost', 1060, loop=loop)

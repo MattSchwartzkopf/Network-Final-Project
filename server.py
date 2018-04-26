@@ -20,24 +20,19 @@ class AsyncServer(asyncio.Protocol):
             self.connection_from = 'Connection from {}'.format(peername)
             #print('Connection from {}'.format(peername))
             self.transport = transport
-
+            
     def data_received(self, data):
-        print("1")
         message = data.decode()
         if message.__contains__('MESSAGES'):
             self.data += message
-        print('2')
         asyncio.async(handle_conversation(self, message))
         print('Data server received: {!r}'.format(message))
         new_data = self.data
-        print('3')
-        print("new", send_back)
-        print('4')
     
         #print('Close the client socket')
        # self.transport.close()
         
-    def store_chat_history(history):
+    def store_chat_history(self, history):
         with open('chat_history.txt', 'a') as file:
             for word in history:
                 print("TESTTTTTT: ", word[6:])
@@ -45,14 +40,13 @@ class AsyncServer(asyncio.Protocol):
                 file.write("\n")
             file.close()
         
-    def load_chat_history():
+    def load_chat_history(self):
         print("OLD CHAT HISTORY ")
         with open('chat_history.txt', 'r') as file:
-            if file.read() == '':
-                print('None \n')
-            else:
-                print("\n") 
-                print(file.read())
+            if file.mode == 'r':
+                MESSAGES.append(file.read())
+                print(MESSAGES)
+        return(MESSAGES)
                 
 @asyncio.coroutine
 def handle_conversation(self, message):
@@ -71,32 +65,32 @@ def handle_conversation(self, message):
         runner = 0
     
     # Build USERNAME stuff
-    if formatter.__contains__('USERNAME'):
+    if formatter.__contains__('USERNAME') and self.count == 1:
+        MESSAGES = self.load_chat_history()
         username = formatter['USERNAME'][0:]
         USER_LIST.append(username)
-        USERNAME_ACCEPTED = {'USERNAME_ACCEPTED' : [True, "INFO", 'Welcome!']}
-        
-        '''
-        length = struct.pack("!I", len(send_back_user))
+        MESSAGES.append(self.data)
+        sender = json.dumps({'USERNAME_ACCEPTED' : True, "INFO" : "Welcome", 'USER_LIST' : USER_LIST, 'MESSAGES' : MESSAGES}).encode()
+        length = struct.pack("!I", len(sender))
         self.transport.write(length)
-        self.transport.write(send_back_user)
-        print("USERS: ", USER_LIST)
-        '''
+        self.transport.write(sender)
+        print("Sent: ", sender)
 
-    # Build MESSAGES stuff
-    if formatter.__contains__('MESSAGES'):
-        MESSAGES = [self.data]
-        send_back_messages = json.dumps({'MESSAGES' : [MESSAGES]}).encode()
-        
-        print("MESSAGES: ", MESSAGES)
+    if self.count > 1:
+        # Sends all data
+        MESSAGES = self.data
+        self.store_chat_history(self.data)
+        sender = json.dumps({'MESSAGES' : [MESSAGES]}).encode()
+        length = struct.pack("!I", len(sender))
+        send = length + sender
+        self.transport.write(length)
+        self.transport.write(sender)
+        #print("Send: ", send, "\n")
+        #self.transport.write(send)
+    
+    self.count += 1
 
-    # Send all data
-    print("ACCEPT: ", USERNAME_ACCEPTED)
-    sender = json.dumps({'USERNAME_ACCEPTED' : [USERNAME_ACCEPTED], 'USER_LIST' : [USER_LIST], 'MESSAGES' : [self.data]}).encode()
-    length = struct.pack("!I", len(sender))
-    self.transport.write(length)
-    self.transport.write(sender)
-
+    
 if __name__=='__main__':
     loop = asyncio.get_event_loop()
     # Each client connection will create a new protocol instance

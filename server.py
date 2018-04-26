@@ -65,7 +65,9 @@ def handle_conversation(self, message):
     
     # Build USERNAME stuff
     if formatter.__contains__('USERNAME') and self.count == 1:
-        MESSAGES = self.load_chat_history()
+        MESSAGES = [formatter['USERNAME'][0:], 'ALL', 1234567, 'heyo']
+
+        #MESSAGES = ['matt', 'ALL', 1234567, 'Hello']
         username = formatter['USERNAME'][0:]
         USER_LIST.append(username)
         sender = json.dumps({'USERNAME_ACCEPTED' : True, "INFO" : "Welcome", 'USER_LIST' : USER_LIST, 'MESSAGES' : [MESSAGES]}).encode()
@@ -73,9 +75,19 @@ def handle_conversation(self, message):
         #send = length + sender
         self.transport.write(length)
         self.transport.write(sender)
-        print("Sent: ", sender)
+        self.count += 1
 
-    
+    if formatter.__contains__('MESSAGES') and self.count > 1:
+        username = formatter['MESSAGES'][0][0]
+        dest = formatter['MESSAGES'][0][1]
+        timestamp = formatter['MESSAGES'][0][2]
+        message = formatter['MESSAGES'][0][3]
+        MESSAGES = [username, dest, timestamp, message]
+        sender = json.dumps({'MESSAGES' : [MESSAGES]}).encode()
+        length = struct.pack("!I", len(sender))
+        self.transport.write(length)
+        self.transport.write(sender)
+
 if __name__=='__main__':
     loop = asyncio.get_event_loop()
     # Each client connection will create a new protocol instance

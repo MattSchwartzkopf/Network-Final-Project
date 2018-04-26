@@ -45,24 +45,27 @@ class AsyncClient(asyncio.Protocol):
     # Prints all messages stored in server history
     def handle_chat(self, message):
         test = json.loads(message[4:])
-        print("Test: ", test)
+        
         # Loads all message history
-        print("yaeh: ", test['MESSAGES'])
-        print("yea2: ", len( test['MESSAGES']))
-        print("Yeah3: ", test['MESSAGES'][0][0], ": ", test['MESSAGES'][0][2])
         for i in range(len(test['MESSAGES'])):
             print("", test['MESSAGES'][i][0] + ": ", test['MESSAGES'][i][3])
             self.count += 1
         self.run += 1
 
+    # Prints all new messages
+    def messages(self, message):
+        
+        if message.__contains__('USERS_'):
+            print("ERROR")
+        test = json.loads(message[4:])
+        print(test['MESSAGES'][0][0] +": ", test['MESSAGES'][0][3])
+
     def print_new_messages(self, data):
         # Prints all new emssages
         if self.run > 0:
             self.new_data += data.decode('ISO-8859-1')
-            if self.new_data.__contains__('USERNAME_ACCEPTED'):
-                print(data)
             if self.new_data.__contains__(']]}') and self.new_data.__contains__('MESSAGES'):
-                #self.messages(self.new_data)
+                self.messages(self.new_data)
                 self.new_data = ''
             if self.new_data.__contains__('USERS_'):
                 self.new_data = ''

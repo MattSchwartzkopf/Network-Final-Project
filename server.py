@@ -23,8 +23,7 @@ class AsyncServer(asyncio.Protocol):
             
     def data_received(self, data):
         message = data.decode()
-        if message.__contains__('MESSAGES'):
-            self.data += message
+        self.data += message
         asyncio.async(handle_conversation(self, message))
         print('Data server received: {!r}'.format(message))
         new_data = self.data
@@ -36,15 +35,15 @@ class AsyncServer(asyncio.Protocol):
         with open('chat_history.txt', 'a') as file:
             for word in history:
                 print("TESTTTTTT: ", word[6:])
-                file.write(str(word[6:]))
-                file.write("\n")
+                file.write(str(word[6:]) + " ")
             file.close()
         
     def load_chat_history(self):
         print("OLD CHAT HISTORY ")
         with open('chat_history.txt', 'r') as file:
             if file.mode == 'r':
-                MESSAGES.append(file.read())
+                for line in file:
+                    MESSAGES.append(line)
                 print(MESSAGES)
         return(MESSAGES)
                 
@@ -69,26 +68,12 @@ def handle_conversation(self, message):
         MESSAGES = self.load_chat_history()
         username = formatter['USERNAME'][0:]
         USER_LIST.append(username)
-        MESSAGES.append(self.data)
-        sender = json.dumps({'USERNAME_ACCEPTED' : True, "INFO" : "Welcome", 'USER_LIST' : USER_LIST, 'MESSAGES' : MESSAGES}).encode()
+        sender = json.dumps({'USERNAME_ACCEPTED' : True, "INFO" : "Welcome", 'USER_LIST' : USER_LIST, 'MESSAGES' : [MESSAGES]}).encode()
         length = struct.pack("!I", len(sender))
+        #send = length + sender
         self.transport.write(length)
         self.transport.write(sender)
         print("Sent: ", sender)
-
-    if self.count > 1:
-        # Sends all data
-        MESSAGES = self.data
-        self.store_chat_history(self.data)
-        sender = json.dumps({'MESSAGES' : [MESSAGES]}).encode()
-        length = struct.pack("!I", len(sender))
-        send = length + sender
-        self.transport.write(length)
-        self.transport.write(sender)
-        #print("Send: ", send, "\n")
-        #self.transport.write(send)
-    
-    self.count += 1
 
     
 if __name__=='__main__':

@@ -44,40 +44,27 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all messages stored in server history
     def handle_chat(self, message):
-        print("MESSAGE: ", message)
         test = json.loads(message[4:])
-
+        print("Test: ", test)
         # Loads all message history
+        print("yaeh: ", test['MESSAGES'])
+        print("yea2: ", len( test['MESSAGES']))
+        print("Yeah3: ", test['MESSAGES'][0][0], ": ", test['MESSAGES'][0][2])
         for i in range(len(test['MESSAGES'])):
             print("", test['MESSAGES'][i][0] + ": ", test['MESSAGES'][i][3])
             self.count += 1
         self.run += 1
-            
-    # Prints all new messages
-    def messages(self, message):
-        if message.__contains__('USERS_'):
-            print("ERROR")
-        test = json.loads(message[4:])
-        print(test['MESSAGES'][0][0] +": ", test['MESSAGES'][0][3])
-
-    #### v NOT CURRENTLY USING v ####
-    def format_users(self, data):
-        test = json.dumps(data.decode('ISO-8859-1')[4:])
-        if test.__contains__('JOINED'):
-            print(test)
-        if test.__contains__('LEFT'):
-            print(test)
-    #### ^ NOT CURRENTLY USING ^ ####
 
     def print_new_messages(self, data):
         # Prints all new emssages
         if self.run > 0:
             self.new_data += data.decode('ISO-8859-1')
+            if self.new_data.__contains__('USERNAME_ACCEPTED'):
+                print(data)
             if self.new_data.__contains__(']]}') and self.new_data.__contains__('MESSAGES'):
-                self.messages(self.new_data)
+                #self.messages(self.new_data)
                 self.new_data = ''
             if self.new_data.__contains__('USERS_'):
-                print(data)
                 self.new_data = ''
 
     def grab_server_messages(self, data):
@@ -86,6 +73,7 @@ class AsyncClient(asyncio.Protocol):
             self.length += len(data)
             for char in data.decode('ISO-8859-1'):
                 self.data += char
+                self.run += 1
             break
     def print_server_messages(self):
         if self.data.__contains__(']]}') and self.count == 1:
@@ -93,12 +81,12 @@ class AsyncClient(asyncio.Protocol):
                 self.handle_chat(self.data)
 
     def data_received(self, data):
-        
-        # Prints all new messages
-        self.print_new_messages(data)
-                
+
         # Grabs all stored messages from server
         self.grab_server_messages(data)
+
+        # Prints all new messages
+        self.print_new_messages(data)
     
         # Once all messages are received,
         # Print to console

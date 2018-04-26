@@ -1,2 +1,8 @@
-"matt", "ALL", 15393433, "HelloWorld!"
-'Person', 'ALL', 1234567, 'Heyo'
+matt
+ALL
+1234567
+HelloWorld
+Person
+ALL
+1234567
+Bonjour

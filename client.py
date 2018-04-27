@@ -12,22 +12,21 @@ class AsyncClient(asyncio.Protocol):
         self.username = ''
         self.count = 0
         self.transport = None
-        self.loop = loop
         self.data = ''
         self.new_data = ''
         self.length = 0
         self.run= 0
         self.run_once = 0
-        
+
+     # Gets and prints connection to server
     def connection_made(self, transport):
         self.transport = transport
-        # Prints connection to server
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
         self.get_username()
-         
+
+    # Gets username from user
     def get_username(self):
-        # Gets username from user
         self.username = input("Enter username: ")
         self.send_username_data()
     
@@ -57,9 +56,8 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all new messages
     def messages(self, message):
-        
         new = ''
-        print("MESSSSS: ", self.run_once)
+        # strips broken code from front of 'message'
         if message.__contains__('USERS_') or message.__contains__('JOINED') or message.__contains__('LEFT'):
             counter = 0
             for char in message:
@@ -70,8 +68,11 @@ class AsyncClient(asyncio.Protocol):
             test = json.loads(new[4:])
         else:
             test = json.loads(message[4:])
+            
+        # Prints message properly
         print(test['MESSAGES'][0][0] +": ", test['MESSAGES'][0][3])
 
+    # Prints all new messages received/sent to server
     def print_new_messages(self, data):
         # Prints all new emssages
         if self.run > 0:
@@ -97,6 +98,8 @@ class AsyncClient(asyncio.Protocol):
                 self.data += char
                 self.run += 1
             break
+
+    # Prints all stored server messages
     def print_server_messages(self):
         if self.data.__contains__(']]}') and self.count == 1:
             if len(self.data) == self.length:
@@ -115,7 +118,8 @@ class AsyncClient(asyncio.Protocol):
         # Once all messages are received,
         # Print to console
         self.print_server_messages()
-                
+
+# Loop to continuously send messages to server from user input
 @asyncio.coroutine
 def handle_user_input(self):
     while True:

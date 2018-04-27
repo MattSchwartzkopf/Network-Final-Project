@@ -21,7 +21,6 @@ class AsyncServer(asyncio.Protocol):
         if self.transport == None:
             peername = transport.get_extra_info('peername')
             self.connection_from = 'Connection from {}'.format(peername)
-            #print('Connection from {}'.format(peername))
             self.transport = transport
             
     def data_received(self, data):
@@ -30,18 +29,17 @@ class AsyncServer(asyncio.Protocol):
         asyncio.async(handle_conversation(self, message))
         print('Data server received: {!r}'.format(message))
         new_data = self.data
-    
-        #print('Close the client socket')
-       # self.transport.close()
-        
+
+    # Stores all local server chat history to a text file
     def store_chat_history(self, history):
         with open('chat_history.txt', 'a') as file:
             for word in history:
                 file.write("\n" + str(word))
             file.close()
-        
+
+    # Loads all server chat history from file
     def load_chat_history(self):
-        print("OLD CHAT HISTORY ")
+        print("\nOLD CHAT HISTORY")
         i = 0
         test = []
         new = []
@@ -59,15 +57,14 @@ class AsyncServer(asyncio.Protocol):
                     MESSAGES.append(new)
                     new = []
                     r += 4
-            #print(MESSAGES)
         return(MESSAGES)
-    
+
+    # Sends 'USER_ACCEPTED' to server to start receiving all server data
     def send_user_acception(self, message):
         message2 = self.load_chat_history()
         MESSAGES = message2
         
         # Formats all messages to send
-        #print(message)
         formatter = json.loads(message[4:])
         
         username = formatter['USERNAME'][0:]
@@ -76,11 +73,13 @@ class AsyncServer(asyncio.Protocol):
         length = struct.pack("!I", len(sender))
         self.transport.write(length)
         self.transport.write(sender)
-        print("\nSender: ", sender)
-        #self.user_joined(username)
+        print(sender, "\n")
         self.count += 1
         
     def send_new_message(self, message):
+        if message.__contains__('USERS_JOINED'):
+            self.user_joined(message)
+        
         # Formats all messages to send
         formatter = json.loads(message[4:])
 
@@ -117,7 +116,7 @@ def handle_conversation(self, message):
     # Build USERNAME stuff
     if formatter.__contains__('USERNAME') and self.count == 1:
         self.send_user_acception(message)
-
+        
     if formatter.__contains__('MESSAGES') and self.count > 1:
         self.send_new_message(message)
 

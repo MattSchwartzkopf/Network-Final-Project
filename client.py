@@ -1,3 +1,17 @@
+"""
+    Author: Matthew Schwartzkopf , Timothy Feraco, Paul Igo
+    Class   : CSI-235
+    Assignment: Final Project
+    Date Assigned: April 12, 2018
+    Due Date: April 26, 2018  11:59pm
+
+    Description:
+        This code is a TCP/TLS server for a simple chat.
+
+        Champlain College CSI-235, Spring 2018
+        and modified by Matthew Schwartzkopf, Timothy Feraco, Paul Igo.
+"""
+
 import asyncio
 import json
 import argparse
@@ -106,7 +120,6 @@ class AsyncClient(asyncio.Protocol):
                 self.handle_chat(self.data)
 
     def data_received(self, data):
-
         # Grabs all stored messages from server
         self.grab_server_messages(data)
 

@@ -1,6 +1,8 @@
 import asyncio
 import json
 import struct
+import socket, ssl
+import argparse
 
 USER_LIST = []
 send_back = ''
@@ -75,7 +77,7 @@ class AsyncServer(asyncio.Protocol):
         self.transport.write(length)
         self.transport.write(sender)
         print("\nSender: ", sender)
-        self.user_joined(username)
+        #self.user_joined(username)
         self.count += 1
         
     def send_new_message(self, message):
@@ -120,19 +122,30 @@ def handle_conversation(self, message):
         self.send_new_message(message)
 
 if __name__=='__main__':
+    parser = argparse.ArgumentParser(description='Async Server')
+    parser.add_argument('host', help='IP or hostname')
+    parser.add_argument('port', type=int, help='TCP Port Number')
+    parser.add_argument('-a', metavar='cafile', default=None, help='CA File')
+    parser.add_argument('-s', metavar='certfile', default='localhost.pem', help='help')
+    args = parser.parse_args()
+    
+    purpose = ssl.Purpose.CLIENT_AUTH
+    context = ssl.create_default_context(purpose, cafile=args.a)
+    context.load_cert_chain(args.s)
+
+    print('Listening at interface {!r} and port {}'.format(args.host, args.port))
+
     loop = asyncio.get_event_loop()
-    # Each client connection will create a new protocol instance
-    coro = loop.create_server(AsyncServer, 'localhost', 1060)
+    coro = loop.create_server(AsyncServer, args.host, args.port)
     server = loop.run_until_complete(coro)
 
-    # Serve requests until Ctrl+C is pressed
-    print('Serving on {}'.format(server.sockets[0].getsockname()))
+    print('Servering on {}'.format(server.sockets[0].getsockname()))
+
     try:
-        loop.run_forever()
+          loop.run_forever()
     except:
-        # Close the server
-        server.close()
-        loop.run_until_complete(server.wait_closed())
-        loop.close()
+          server.close()
+          loop.run_until_complete(server.wait_closed())
+          loop.stop()
 
 

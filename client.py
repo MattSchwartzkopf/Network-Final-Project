@@ -5,6 +5,7 @@ import struct
 import time
 import calendar
 import sys
+import socket, ssl
 
 class AsyncClient(asyncio.Protocol):
     def __init__(self, loop):
@@ -16,6 +17,7 @@ class AsyncClient(asyncio.Protocol):
         self.new_data = ''
         self.length = 0
         self.run= 0
+        self.run_once = 0
         
     def connection_made(self, transport):
         self.transport = transport
@@ -44,6 +46,7 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all messages stored in server history
     def handle_chat(self, message):
+        print(message)
         test = json.loads(message[4:])
         
         # Loads all message history
@@ -54,9 +57,9 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all new messages
     def messages(self, message):
-
-        new = ''
         
+        new = ''
+        print("MESSSSS: ", self.run_once)
         if message.__contains__('USERS_') or message.__contains__('JOINED') or message.__contains__('LEFT'):
             counter = 0
             for char in message:
@@ -105,8 +108,10 @@ class AsyncClient(asyncio.Protocol):
         self.grab_server_messages(data)
 
         # Prints all new messages
-        self.print_new_messages(data)
-    
+        if self.run_once > 0:
+            self.print_new_messages(data)
+        self.run_once += 1
+        
         # Once all messages are received,
         # Print to console
         self.print_server_messages()
@@ -133,7 +138,7 @@ def handle_user_input(self):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Async Client')
     parser.add_argument('host', help='IP or hostname')
-    parser.add_argument('-p', metavar='port', type=int, default=1060,
+    parser.add_argument('port', metavar='port', type=int, default=1060,
                         help='TCP port (default 9000)')
         
     args = parser.parse_args()
@@ -141,8 +146,14 @@ if __name__=='__main__':
     loop = asyncio.get_event_loop()
     client = AsyncClient(loop)
     coro =  loop.create_connection(lambda: client,
-                                   args.host, args.p)
+                                   args.host, args.port)
     loop.run_until_complete(coro)
+
+    purpose = ssl.Purpose.SERVER_AUTH
+    context = ssl.create_default_context(purpose, cafile=None)
+    raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    raw_sock.connect((args.host, args.port))
+    print('Connected to host {!r} and port {}'.format(args.host, args.port))
 
     try:
         loop.run_forever()        

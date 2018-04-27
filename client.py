@@ -59,7 +59,6 @@ class AsyncClient(asyncio.Protocol):
 
     # Prints all messages stored in server history
     def handle_chat(self, message):
-        print(message)
         test = json.loads(message[4:])
         
         # Loads all message history
